@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CallTest — BDR A/B Script Tester</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c27;
+    --border: #2a2a3a;
+    --accent-a: #00e5a0;
+    --accent-b: #ff6b6b;
+    --accent-a-dim: rgba(0,229,160,0.12);
+    --accent-b-dim: rgba(255,107,107,0.12);
+    --text: #e8e8f0;
+    --text-muted: #6b6b80;
+    --text-dim: #9090a8;
+    --gold: #f5c842;
+    --gold-dim: rgba(245,200,66,0.12);
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    font-size: 15px;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .logo-mark {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  .logo-mark span {
+    color: var(--accent-a);
+  }
+
+  .logo-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .btn-ghost {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--text-muted); color: var(--text); }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    width: fit-content;
+  }
+
+  .tab {
+    padding: 9px 20px;
+    border-radius: 9px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* NEW TEST FORM */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 28px;
+  }
+
+  .form-card h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+
+  .form-card .subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 22px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-family: 'DM Mono', monospace;
+  }
+
+  input, textarea, select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    transition: border-color 0.2s;
+    outline: none;
+    width: 100%;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--accent-a);
+  }
+
+  textarea { resize: vertical; min-height: 100px; }
+
+  select option { background: var(--surface2); }
+
+  .btn-generate {
+    background: var(--accent-a);
+    color: #0a0a0f;
+    border: none;
+    padding: 12px 28px;
+    border-radius: var(--radius);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-generate:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* LOADING */
+  .loading-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+    margin: 20px 0;
+    display: none;
+  }
+
+  .loading-bar.active { display: block; }
+
+  .loading-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-a), var(--accent-b));
+    border-radius: 99px;
+    animation: loadingSlide 1.6s ease-in-out infinite;
+  }
+
+  @keyframes loadingSlide {
+    0% { width: 0%; margin-left: 0; }
+    50% { width: 70%; margin-left: 15%; }
+    100% { width: 0%; margin-left: 100%; }
+  }
+
+  /* AB SCRIPTS */
+  .ab-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .script-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .script-card-header {
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .script-card.a .script-card-header { background: var(--accent-a-dim); }
+  .script-card.b .script-card-header { background: var(--accent-b-dim); }
+
+  .script-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .script-card.a .script-label { color: var(--accent-a); }
+  .script-card.b .script-label { color: var(--accent-b); }
+
+  .script-body {
+    padding: 16px 18px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .script-textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.65;
+    padding: 14px;
+    resize: vertical;
+    min-height: 220px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .script-card.a .script-textarea:focus { border-color: var(--accent-a); }
+  .script-card.b .script-textarea:focus { border-color: var(--accent-b); }
+
+  .script-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn-small {
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-dim);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .btn-small:hover { color: var(--text); border-color: var(--text-muted); }
+
+  .btn-winner-a {
+    background: var(--accent-a-dim);
+    border-color: var(--accent-a);
+    color: var(--accent-a);
+  }
+
+  .btn-winner-b {
+    background: var(--accent-b-dim);
+    border-color: var(--accent-b);
+    color: var(--accent-b);
+  }
+
+  .btn-winner-a:hover { background: rgba(0,229,160,0.22); color: var(--accent-a); }
+  .btn-winner-b:hover { background: rgba(255,107,107,0.22); color: var(--accent-b); }
+
+  /* NOTES AREA */
+  .notes-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 20px;
+  }
+
+  /* HISTORY */
+  .history-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+
+  .history-empty .icon { font-size: 36px; margin-bottom: 12px; }
+  .history-empty p { font-size: 14px; }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .history-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .history-card-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .history-card-header:hover { background: var(--surface2); }
+
+  .history-meta {
+    flex: 1;
+  }
+
+  .history-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .history-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .winner-badge {
+    padding: 5px 12px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  .winner-badge.a { background: var(--accent-a-dim); color: var(--accent-a); border: 1px solid rgba(0,229,160,0.3); }
+  .winner-badge.b { background: var(--accent-b-dim); color: var(--accent-b); border: 1px solid rgba(255,107,107,0.3); }
+  .winner-badge.gold { background: var(--gold-dim); color: var(--gold); border: 1px solid rgba(245,200,66,0.3); }
+  .winner-badge.none { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+
+  .history-expand {
+    color: var(--text-muted);
+    font-size: 18px;
+    transition: transform 0.2s;
+    user-select: none;
+  }
+
+  .history-card.open .history-expand { transform: rotate(180deg); }
+
+  .history-body {
+    display: none;
+    padding: 0 20px 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .history-card.open .history-body { display: block; }
+
+  .history-scripts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+    margin-bottom: 16px;
+  }
+
+  .history-script-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+
+  .history-script-block.winner-a { border-color: rgba(0,229,160,0.4); }
+  .history-script-block.winner-b { border-color: rgba(255,107,107,0.4); }
+
+  .history-script-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .history-script-label.a { color: var(--accent-a); }
+  .history-script-label.b { color: var(--accent-b); }
+
+  .history-script-text {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    white-space: pre-wrap;
+  }
+
+  .history-notes {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-style: italic;
+    margin-top: 4px;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--gold);
+  }
+
+  .history-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  /* STATS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .stat-card.highlight-a .stat-value { color: var(--accent-a); }
+  .stat-card.highlight-b .stat-value { color: var(--accent-b); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 22px;
+    border-radius: 99px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 999;
+    pointer-events: none;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* REGENERATE AREA */
+  .regen-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .regen-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 24px 0;
+  }
+
+  @media (max-width: 700px) {
+    .ab-grid, .form-grid, .history-scripts, .stats-grid { grid-template-columns: 1fr; }
+    .notes-row { grid-template-columns: 1fr; }
+    header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo">
+      <div class="logo-mark">Call<span>Test</span></div>
+      <div class="logo-tag">BDR A/B Script Lab</div>
+    </div>
+    <div class="header-right">
+      <button class="btn-ghost" onclick="exportData()">⬇ Export All</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('new')">＋ New Test</button>
+    <button class="tab" onclick="switchTab('history')">History</button>
+    <button class="tab" onclick="switchTab('stats')">Stats</button>
+  </div>
+
+  <!-- NEW TEST PANEL -->
+  <div class="panel active" id="panel-new">
+    <div class="form-card">
+      <h2>Describe Your Sale</h2>
+      <p class="subtitle">Fill in the details below and we'll generate two competing call scripts to A/B test.</p>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Product / Service</label>
+          <input type="text" id="product" placeholder="e.g. CRM software, recruiting platform…">
+        </div>
+        <div class="form-group">
+          <label>Target Persona</label>
+          <input type="text" id="persona" placeholder="e.g. VP of Sales, HR Manager…">
+        </div>
+        <div class="form-group">
+          <label>Industry</label>
+          <input type="text" id="industry" placeholder="e.g. SaaS, Healthcare, Finance…">
+        </div>
+        <div class="form-group">
+          <label>Primary Pain Point</label>
+          <input type="text" id="pain" placeholder="e.g. low conversion rates, slow hiring…">
+        </div>
+        <div class="form-group full">
+          <label>Key Value Proposition</label>
+          <textarea id="value_prop" placeholder="What's the core benefit you deliver? What makes you different?" style="min-height:72px;"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Tone for Script A</label>
+          <select id="tone_a">
+            <option value="consultative">Consultative</option>
+            <option value="challenger">Challenger / Provocative</option>
+            <option value="friendly">Friendly & Conversational</option>
+            <option value="direct">Direct & Concise</option>
+            <option value="storytelling">Storytelling / Narrative</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tone for Script B</label>
+          <select id="tone_b">
+            <option value="challenger" selected>Challenger / Provocative</option>
+            <option value="consultative">Consultative</option>
+            <option value="friendly">Friendly & Conversational</option>
+            <option value="direct">Direct & Concise</option>
+            <option value="storytelling">Storytelling / Narrative</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Test Name (optional)</label>
+          <input type="text" id="test_name" placeholder="e.g. Q2 VP Sales Outreach">
+        </div>
+        <div class="form-group">
+          <label>Rep Name (optional)</label>
+          <input type="text" id="rep_name" placeholder="e.g. Jordan">
+        </div>
+      </div>
+
+      <button class="btn-generate" onclick="generateScripts()" id="gen-btn">
+        <span>⚡</span> Generate A/B Scripts
+      </button>
+    </div>
+
+    <div class="loading-bar" id="loading-bar"><div class="loading-bar-inner"></div></div>
+
+    <!-- SCRIPTS OUTPUT -->
+    <div id="scripts-output" style="display:none;">
+      <div class="ab-grid">
+        <div class="script-card a">
+          <div class="script-card-header">
+            <span class="script-label">▲ Script A</span>
+            <span id="label-tone-a" style="font-size:11px;color:var(--text-muted);font-family:'DM Mono',monospace;"></span>
+          </div>
+          <div class="script-body">
+            <textarea class="script-textarea" id="script-a" placeholder="Script A will appear here…"></textarea>
+            <div class="script-actions">
+              <button class="btn-small" onclick="regenScript('a')">↻ Regenerate A</button>
+              <button class="btn-small" onclick="copyScript('a')">⎘ Copy</button>
+            </div>
+          </div>
+        </div>
+        <div class="script-card b">
+          <div class="script-card-header">
+            <span class="script-label">▼ Script B</span>
+            <span id="label-tone-b" style="font-size:11px;color:var(--text-muted);font-family:'DM Mono',monospace;"></span>
+          </div>
+          <div class="script-body">
+            <textarea class="script-textarea" id="script-b" placeholder="Script B will appear here…"></textarea>
+            <div class="script-actions">
+              <button class="btn-small" onclick="regenScript('b')">↻ Regenerate B</button>
+              <button class="btn-small" onclick="copyScript('b')">⎘ Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes-row">
+        <div class="form-group">
+          <label>Notes / Call Outcome</label>
+          <input type="text" id="test-notes" placeholder="e.g. A got a callback, B felt too aggressive…">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <button class="btn-small btn-winner-a" onclick="saveResult('a')">🏆 Save A as Winner</button>
+        <button class="btn-small btn-winner-b" onclick="saveResult('b')">🏆 Save B as Winner</button>
+        <button class="btn-small" onclick="saveResult('tie')">🤝 Save as Tie</button>
+        <button class="btn-small" onclick="saveResult('none')" style="margin-left:auto;">💾 Save (no winner yet)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY PANEL -->
+  <div class="panel" id="panel-history">
+    <div id="history-container"></div>
+  </div>
+
+  <!-- STATS PANEL -->
+  <div class="panel" id="panel-stats">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-label">Total Tests</div>
+      </div>
+      <div class="stat-card highlight-a">
+        <div class="stat-value" id="stat-a-wins">0</div>
+        <div class="stat-label">Script A Wins</div>
+      </div>
+      <div class="stat-card highlight-b">
+        <div class="stat-value" id="stat-b-wins">0</div>
+        <div class="stat-label">Script B Wins</div>
+      </div>
+    </div>
+    <div id="stats-breakdown"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'calltest_v1';
+
+// ── STATE ──────────────────────────────────────────────
+let currentTest = null;
+let tests = loadTests();
+
+function loadTests() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveTests() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tests));
+}
+
+// ── TABS ───────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['new','history','stats'][i] === tab);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  if (tab === 'history') renderHistory();
+  if (tab === 'stats') renderStats();
+}
+
+// ── GENERATE ───────────────────────────────────────────
+async function generateScripts() {
+  const product = document.getElementById('product').value.trim();
+  const persona = document.getElementById('persona').value.trim();
+  if (!product || !persona) { showToast('Please fill in Product and Target Persona at minimum.'); return; }
+
+  const industry = document.getElementById('industry').value.trim();
+  const pain = document.getElementById('pain').value.trim();
+  const value_prop = document.getElementById('value_prop').value.trim();
+  const tone_a = document.getElementById('tone_a').value;
+  const tone_b = document.getElementById('tone_b').value;
+
+  document.getElementById('gen-btn').disabled = true;
+  document.getElementById('loading-bar').classList.add('active');
+  document.getElementById('scripts-output').style.display = 'none';
+
+  const prompt = `You are an expert B2B sales coach helping a Business Development Representative craft cold call scripts.
+
+Generate TWO distinct full cold call scripts (A and B) for the following sale:
+
+Product/Service: ${product}
+Target Persona: ${persona}
+${industry ? `Industry: ${industry}` : ''}
+${pain ? `Primary Pain Point: ${pain}` : ''}
+${value_prop ? `Value Proposition: ${value_prop}` : ''}
+
+Script A Tone: ${tone_a}
+Script B Tone: ${tone_b}
+
+Each script should include:
+1. Opening (attention-grabbing intro, state who you are)
+2. Permission/Pattern interrupt
+3. Problem/Pain acknowledgment
+4. Value proposition
+5. Soft qualification question
+6. Call to action (book a meeting)
+7. Objection handling for "not interested" or "send me an email"
+
+Format your response EXACTLY like this with no extra commentary:
+
+===SCRIPT_A===
+[full script A here]
+
+===SCRIPT_B===
+[full script B here]`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content.map(b => b.text || '').join('');
+
+    const matchA = text.match(/===SCRIPT_A===([\s\S]*?)(?:===SCRIPT_B===|$)/);
+    const matchB = text.match(/===SCRIPT_B===([\s\S]*?)$/);
+
+    const scriptA = matchA ? matchA[1].trim() : text;
+    const scriptB = matchB ? matchB[1].trim() : '';
+
+    document.getElementById('script-a').value = scriptA;
+    document.getElementById('script-b').value = scriptB;
+    document.getElementById('label-tone-a').textContent = tone_a;
+    document.getElementById('label-tone-b').textContent = tone_b;
+    document.getElementById('test-notes').value = '';
+
+    currentTest = {
+      id: Date.now(),
+      name: document.getElementById('test_name').value.trim() || `${product} → ${persona}`,
+      rep: document.getElementById('rep_name').value.trim(),
+      product, persona, industry, pain, value_prop, tone_a, tone_b,
+      script_a: scriptA,
+      script_b: scriptB,
+      notes: '',
+      winner: null,
+      date: new Date().toISOString()
+    };
+
+    document.getElementById('scripts-output').style.display = 'block';
+    showToast('Scripts generated! Review, iterate, then save a winner.');
+  } catch (err) {
+    showToast('Error generating scripts. Check your connection.');
+    console.error(err);
+  } finally {
+    document.getElementById('gen-btn').disabled = false;
+    document.getElementById('loading-bar').classList.remove('active');
+  }
+}
+
+// ── REGEN ONE SCRIPT ───────────────────────────────────
+async function regenScript(which) {
+  if (!currentTest) return;
+  const tone = which === 'a' ? currentTest.tone_a : currentTest.tone_b;
+  const other = which === 'a' ? document.getElementById('script-b').value : document.getElementById('script-a').value;
+
+  const btn = document.querySelector(`.script-card.${which} .btn-small`);
+  btn.textContent = '…';
+  btn.disabled = true;
+
+  const prompt = `You are an expert B2B sales coach. Regenerate ONE cold call script with a different angle.
+
+Product/Service: ${currentTest.product}
+Target Persona: ${currentTest.persona}
+${currentTest.industry ? `Industry: ${currentTest.industry}` : ''}
+${currentTest.pain ? `Pain Point: ${currentTest.pain}` : ''}
+${currentTest.value_prop ? `Value Prop: ${currentTest.value_prop}` : ''}
+Tone: ${tone}
+
+The other script starts like this (make this one meaningfully different):
+${other.substring(0, 200)}...
+
+Return ONLY the script text, no labels or commentary. Include: opening, permission ask, pain/problem, value prop, qualification question, CTA, and objection handling.`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    const data = await response.json();
+    const text = data.content.map(b => b.text || '').join('').trim();
+    document.getElementById(`script-${which}`).value = text;
+    if (which === 'a') currentTest.script_a = text;
+    else currentTest.script_b = text;
+    showToast(`Script ${which.toUpperCase()} regenerated.`);
+  } catch (err) {
+    showToast('Regeneration failed.');
+  } finally {
+    btn.textContent = `↻ Regenerate ${which.toUpperCase()}`;
+    btn.disabled = false;
+  }
+}
+
+// ── SAVE ───────────────────────────────────────────────
+function saveResult(winner) {
+  if (!currentTest) { showToast('Generate scripts first!'); return; }
+  currentTest.script_a = document.getElementById('script-a').value;
+  currentTest.script_b = document.getElementById('script-b').value;
+  currentTest.notes = document.getElementById('test-notes').value.trim();
+  currentTest.winner = winner;
+
+  const existing = tests.findIndex(t => t.id === currentTest.id);
+  if (existing >= 0) tests[existing] = currentTest;
+  else tests.unshift(currentTest);
+
+  saveTests();
+  const labels = { a: '🏆 Script A saved as winner!', b: '🏆 Script B saved as winner!', tie: '🤝 Saved as tie!', none: '💾 Test saved.' };
+  showToast(labels[winner] || '💾 Saved.');
+}
+
+// ── COPY ───────────────────────────────────────────────
+function copyScript(which) {
+  const text = document.getElementById(`script-${which}`).value;
+  navigator.clipboard.writeText(text).then(() => showToast(`Script ${which.toUpperCase()} copied!`));
+}
+
+// ── HISTORY ───────────────────────────────────────────
+function renderHistory() {
+  const container = document.getElementById('history-container');
+  if (!tests.length) {
+    container.innerHTML = `<div class="history-empty"><div class="icon">📋</div><p>No tests saved yet. Create your first A/B test!</p></div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="history-list">${tests.map(t => renderHistoryCard(t)).join('')}</div>`;
+}
+
+function renderHistoryCard(t) {
+  const winnerLabels = { a: 'A Won', b: 'B Won', tie: 'Tie', none: 'No result' };
+  const winnerClass = t.winner === 'a' ? 'a' : t.winner === 'b' ? 'b' : t.winner === 'tie' ? 'gold' : 'none';
+  const date = new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  return `
+  <div class="history-card" id="hc-${t.id}">
+    <div class="history-card-header" onclick="toggleHistory(${t.id})">
+      <div class="history-meta">
+        <div class="history-title">${escHtml(t.name)}</div>
+        <div class="history-sub">${date}${t.rep ? ' · ' + escHtml(t.rep) : ''} · ${escHtml(t.tone_a)} vs ${escHtml(t.tone_b)}</div>
+      </div>
+      <span class="winner-badge ${winnerClass}">${winnerLabels[t.winner] || 'No result'}</span>
+      <span class="history-expand">▾</span>
+    </div>
+    <div class="history-body">
+      <div class="history-scripts">
+        <div class="history-script-block ${t.winner === 'a' ? 'winner-a' : ''}">
+          <div class="history-script-label a">${t.winner === 'a' ? '🏆 ' : ''}Script A · ${escHtml(t.tone_a)}</div>
+          <div class="history-script-text">${escHtml(t.script_a)}</div>
+        </div>
+        <div class="history-script-block ${t.winner === 'b' ? 'winner-b' : ''}">
+          <div class="history-script-label b">${t.winner === 'b' ? '🏆 ' : ''}Script B · ${escHtml(t.tone_b)}</div>
+          <div class="history-script-text">${escHtml(t.script_b)}</div>
+        </div>
+      </div>
+      ${t.notes ? `<div class="history-notes">📝 ${escHtml(t.notes)}</div>` : ''}
+      <div class="history-actions">
+        <button class="btn-small btn-winner-a" onclick="updateWinner(${t.id}, 'a')">A Won</button>
+        <button class="btn-small btn-winner-b" onclick="updateWinner(${t.id}, 'b')">B Won</button>
+        <button class="btn-small" onclick="updateWinner(${t.id}, 'tie')">Tie</button>
+        <button class="btn-small" style="margin-left:auto;color:var(--accent-b);" onclick="deleteTest(${t.id})">✕ Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleHistory(id) {
+  document.getElementById('hc-' + id)?.classList.toggle('open');
+}
+
+function updateWinner(id, winner) {
+  const t = tests.find(t => t.id === id);
+  if (t) { t.winner = winner; saveTests(); renderHistory(); showToast('Result updated!'); }
+}
+
+function deleteTest(id) {
+  tests = tests.filter(t => t.id !== id);
+  saveTests();
+  renderHistory();
+  showToast('Test deleted.');
+}
+
+// ── STATS ─────────────────────────────────────────────
+function renderStats() {
+  const total = tests.length;
+  const aWins = tests.filter(t => t.winner === 'a').length;
+  const bWins = tests.filter(t => t.winner === 'b').length;
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-a-wins').textContent = aWins;
+  document.getElementById('stat-b-wins').textContent = bWins;
+
+  // tone breakdown
+  const toneCounts = {};
+  tests.filter(t => t.winner === 'a' || t.winner === 'b').forEach(t => {
+    const winTone = t.winner === 'a' ? t.tone_a : t.tone_b;
+    toneCounts[winTone] = (toneCounts[winTone] || 0) + 1;
+  });
+
+  const breakdown = document.getElementById('stats-breakdown');
+  if (Object.keys(toneCounts).length) {
+    const sorted = Object.entries(toneCounts).sort((a,b) => b[1]-a[1]);
+    breakdown.innerHTML = `
+      <div class="form-card">
+        <h2>Winning Tones</h2>
+        <p class="subtitle">Which call tone wins most often for your team.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+          ${sorted.map(([tone, count]) => `
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-dim);width:160px;text-transform:capitalize;">${tone}</span>
+              <div style="flex:1;background:var(--surface2);border-radius:99px;height:8px;overflow:hidden;">
+                <div style="background:var(--accent-a);height:100%;width:${Math.round((count/Math.max(aWins+bWins,1))*100)}%;border-radius:99px;"></div>
+              </div>
+              <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;">${count}</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  } else {
+    breakdown.innerHTML = `<div class="history-empty"><div class="icon">📊</div><p>Save some test results to see winning tone patterns.</p></div>`;
+  }
+}
+
+// ── EXPORT ────────────────────────────────────────────
+function exportData() {
+  if (!tests.length) { showToast('No tests to export.'); return; }
+  const csv = [
+    ['Date','Name','Rep','Product','Persona','Tone A','Tone B','Winner','Notes','Script A','Script B'],
+    ...tests.map(t => [
+      new Date(t.date).toLocaleDateString(),
+      t.name, t.rep, t.product, t.persona,
+      t.tone_a, t.tone_b, t.winner || '',
+      t.notes,
+      t.script_a.replace(/\n/g, ' '),
+      t.script_b.replace(/\n/g, ' ')
+    ].map(v => `"${String(v||'').replace(/"/g,'""')}"`))
+  ].map(r => r.join(',')).join('\n');
+
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'calltest-export.csv';
+  a.click();
+  showToast('Exported as CSV!');
+}
+
+// ── HELPERS ───────────────────────────────────────────
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
